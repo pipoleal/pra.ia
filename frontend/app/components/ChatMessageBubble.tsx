@@ -1,4 +1,5 @@
 import ReactMarkdown, { type Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { ChatMessage } from "../types";
 import { WaveAvatar } from "./WaveAvatar";
 
@@ -32,6 +33,16 @@ const markdownComponents: Components = {
   code: ({ children }) => (
     <code className="rounded bg-navy-900/10 px-1 py-0.5 text-[13px]">{children}</code>
   ),
+  table: ({ children }) => (
+    <div className="mb-2 overflow-x-auto last:mb-0">
+      <table className="w-full min-w-max border-collapse text-sm">{children}</table>
+    </div>
+  ),
+  thead: ({ children }) => <thead className="border-b border-current/20">{children}</thead>,
+  th: ({ children }) => <th className="px-2 py-1.5 text-left font-semibold">{children}</th>,
+  td: ({ children }) => (
+    <td className="border-t border-current/10 px-2 py-1.5 align-top">{children}</td>
+  ),
 };
 
 export function ChatMessageBubble({ message }: { message: ChatMessage }) {
@@ -62,7 +73,9 @@ export function ChatMessageBubble({ message }: { message: ChatMessage }) {
           {isUser ? (
             message.content
           ) : (
-            <ReactMarkdown components={markdownComponents}>{message.content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+              {message.content}
+            </ReactMarkdown>
           )}
         </div>
         {message.timestamp !== undefined && (

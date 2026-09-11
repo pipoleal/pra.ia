@@ -1,49 +1,15 @@
-import logging
-import threading
-import time
+import hashlib
+import random
 from dataclasses import dataclass
-
-
-import httpx
-
-
-logger = logging.getLogger(__name__)
-
-OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
-
-# Cache "fresco": dentro desse intervalo, nunca voltamos a chamar a API externa.
-CACHE_TTL_SEGUNDOS = 7200  # 2 horas
-TIMEOUT_SEGUNDOS = 5.0
-
-_CODIGOS_CHUVA = {51, 53, 55, 61, 63, 65, 80, 81, 82}
-_CODIGOS_TEMPESTADE = {95, 96, 99}
-_CODIGOS_NUBLADO = {2, 3, 45, 48}
-
-_DESCRICOES_WEATHER_CODE = {
-    0: "céu limpo",
-    1: "predominantemente ensolarado",
-    2: "parcialmente nublado",
-    3: "encoberto",
-    45: "neblina",
-    48: "neblina com formação de geada",
-    51: "garoa fraca",
-    53: "garoa moderada",
-    55: "garoa forte",
-    61: "chuva fraca",
-    63: "chuva moderada",
-    65: "chuva forte",
-    71: "neve fraca",
-    80: "pancadas de chuva fracas",
-    81: "pancadas de chuva moderadas",
-    82: "pancadas de chuva fortes",
-    95: "tempestade com trovoadas",
-    96: "tempestade com granizo",
-    99: "tempestade forte com granizo",
-}
+from datetime import date
 
 
 class WeatherServiceError(RuntimeError):
-    pass
+    """Mantida por compatibilidade com quem importa este modulo.
+
+    O simulador climatico abaixo e puramente local (sem I/O de rede), entao
+    na pratica nunca deveria levantar esta excecao.
+    """
 
 
 @dataclass(frozen=True)
@@ -56,154 +22,132 @@ class ClimaAtual:
     categoria: str
 
 
-@dataclass
-class _EntradaCache:
-    clima: ClimaAtual
-    obtido_em: float
-
-
 Coordenada = tuple[float, float]
 
-# Cache global do processo. Guarda o ultimo clima valido de cada coordenada,
-# mesmo depois de expirado, para servir de fallback (cache estaleiro) caso a
-# API externa falhe ou retorne 429. Protegido por _lock pois a rota /chat/ e
-# sincrona e pode ser executada em threads concorrentes.
-_cache: dict[Coordenada, _EntradaCache] = {}
-_lock = threading.Lock()
+
+@dataclass(frozen=True)
+class _PerfilSazonal:
+    estacao: str
+    temperatura_min: float
+    temperatura_max: float
+    vento_min: float
+    vento_max: float
+    distribuicao_categorias: tuple[tuple[str, float], ...]
+
+
+# Perfis climaticos tipicos do Litoral Norte de SP por mes, seguindo as
+# estacoes do hemisferio sul (verao: dez-mar, outono: mar-jun, inverno:
+# jun-set, primavera: set-dez). Setembro/outubro/novembro (primavera) tem
+# maior instabilidade por causa da passagem de frentes frias, por isso a
+# categoria "frente_fria" e mais provavel nesses meses.
+_PERFIS_POR_MES: dict[int, _PerfilSazonal] = {
+    1: _PerfilSazonal("verão", 25.0, 32.0, 5.0, 22.0, (("sol", 0.45), ("nublado", 0.20), ("chuva", 0.15), ("tempestade", 0.20))),
+    2: _PerfilSazonal("verão", 25.0, 32.0, 5.0, 22.0, (("sol", 0.45), ("nublado", 0.20), ("chuva", 0.15), ("tempestade", 0.20))),
+    3: _PerfilSazonal("verão/outono", 23.0, 29.0, 5.0, 20.0, (("sol", 0.50), ("nublado", 0.22), ("chuva", 0.20), ("tempestade", 0.08))),
+    4: _PerfilSazonal("outono", 21.0, 27.0, 5.0, 20.0, (("sol", 0.55), ("nublado", 0.25), ("chuva", 0.15), ("frente_fria", 0.05))),
+    5: _PerfilSazonal("outono", 19.0, 25.0, 5.0, 22.0, (("sol", 0.50), ("nublado", 0.28), ("chuva", 0.15), ("frente_fria", 0.07))),
+    6: _PerfilSazonal("inverno", 17.0, 23.0, 5.0, 25.0, (("sol", 0.55), ("nublado", 0.28), ("chuva", 0.10), ("frente_fria", 0.07))),
+    7: _PerfilSazonal("inverno", 16.0, 22.0, 5.0, 25.0, (("sol", 0.55), ("nublado", 0.28), ("chuva", 0.08), ("frente_fria", 0.09))),
+    8: _PerfilSazonal("inverno/primavera", 17.0, 24.0, 6.0, 28.0, (("sol", 0.50), ("nublado", 0.27), ("chuva", 0.13), ("frente_fria", 0.10))),
+    9: _PerfilSazonal("primavera", 18.0, 25.0, 8.0, 30.0, (("sol", 0.35), ("nublado", 0.25), ("chuva", 0.25), ("frente_fria", 0.15))),
+    10: _PerfilSazonal("primavera", 20.0, 27.0, 7.0, 28.0, (("sol", 0.40), ("nublado", 0.25), ("chuva", 0.20), ("frente_fria", 0.15))),
+    11: _PerfilSazonal("primavera", 22.0, 29.0, 6.0, 25.0, (("sol", 0.45), ("nublado", 0.22), ("chuva", 0.20), ("frente_fria", 0.13))),
+    12: _PerfilSazonal("verão", 24.0, 31.0, 5.0, 22.0, (("sol", 0.45), ("nublado", 0.20), ("chuva", 0.15), ("tempestade", 0.20))),
+}
+
+_CONDICOES_POR_CATEGORIA: dict[str, tuple[str, ...]] = {
+    "sol": ("céu limpo", "predominantemente ensolarado", "parcialmente nublado com sol forte"),
+    "nublado": ("parcialmente nublado", "encoberto", "nublado com aberturas de sol"),
+    "chuva": ("garoa fraca", "chuva passageira", "pancadas de chuva moderadas"),
+    "frente_fria": (
+        "chuva e vento forte (frente fria)",
+        "céu encoberto com vento forte (frente fria)",
+        "chuva com queda de temperatura (frente fria)",
+    ),
+    "tempestade": (
+        "pancadas de chuva fortes com trovoadas",
+        "tempestade de verão à tarde",
+        "chuva forte com risco de raios",
+    ),
+}
 
 
 def _chave(latitude: float, longitude: float) -> Coordenada:
     return (round(latitude, 2), round(longitude, 2))
 
 
-def _cache_fresco(entrada: _EntradaCache, agora: float) -> bool:
-    return (agora - entrada.obtido_em) < CACHE_TTL_SEGUNDOS
+def _seed_para(coordenada: Coordenada, referencia: date) -> int:
+    """Gera uma semente estavel para o dia e a coordenada dados.
 
-
-def _descrever_weather_code(codigo: int) -> str:
-    return _DESCRICOES_WEATHER_CODE.get(codigo, "condições indefinidas")
-
-
-def _categorizar(codigo: int, temperatura: float, vento_kmh: float) -> str:
-    if codigo in _CODIGOS_TEMPESTADE:
-        return "tempestade"
-    if codigo in _CODIGOS_CHUVA:
-        if temperatura < 21 and vento_kmh > 25:
-            return "frente_fria"
-        return "chuva"
-    if codigo in _CODIGOS_NUBLADO:
-        return "nublado"
-    return "sol"
-
-
-def _buscar_lote(coordenadas: list[Coordenada]) -> dict[Coordenada, ClimaAtual]:
-    """Consulta o clima de varias coordenadas em uma unica requisicao HTTP.
-
-    O Open-Meteo aceita listas de latitude/longitude separadas por virgula e
-    devolve um item por coordenada, na mesma ordem em que foram enviadas.
+    O clima simulado so muda de um dia para o outro (ou quando a coordenada
+    muda); dentro do mesmo dia, a mesma coordenada sempre produz o mesmo
+    resultado, garantindo estabilidade nas recomendacoes do chat.
     """
-    resposta = httpx.get(
-        OPEN_METEO_URL,
-        params={
-            "latitude": ",".join(str(lat) for lat, _ in coordenadas),
-            "longitude": ",".join(str(lon) for _, lon in coordenadas),
-            "current": (
-                "temperature_2m,apparent_temperature,precipitation,"
-                "weather_code,wind_speed_10m"
-            ),
-            "timezone": "America/Sao_Paulo",
-        },
-        timeout=TIMEOUT_SEGUNDOS,
+    chave = f"{referencia.isoformat()}:{coordenada[0]:.2f}:{coordenada[1]:.2f}"
+    digest = hashlib.sha256(chave.encode("utf-8")).digest()
+    return int.from_bytes(digest[:8], "big")
+
+
+def _gerar_clima_simulado(coordenada: Coordenada, referencia: date) -> ClimaAtual:
+    perfil = _PERFIS_POR_MES[referencia.month]
+    rng = random.Random(_seed_para(coordenada, referencia))
+
+    categorias, pesos = zip(*perfil.distribuicao_categorias)
+    categoria = rng.choices(categorias, weights=pesos, k=1)[0]
+
+    temperatura = rng.uniform(perfil.temperatura_min, perfil.temperatura_max)
+    vento = rng.uniform(perfil.vento_min, perfil.vento_max)
+    precipitacao = 0.0
+
+    if categoria == "nublado":
+        temperatura -= rng.uniform(0.5, 1.5)
+    elif categoria == "chuva":
+        temperatura -= rng.uniform(1.0, 3.0)
+        vento += rng.uniform(0.0, 5.0)
+        precipitacao = rng.uniform(1.0, 8.0)
+    elif categoria == "frente_fria":
+        temperatura -= rng.uniform(3.0, 6.0)
+        vento += rng.uniform(10.0, 20.0)
+        precipitacao = rng.uniform(2.0, 15.0)
+    elif categoria == "tempestade":
+        temperatura -= rng.uniform(1.0, 4.0)
+        vento += rng.uniform(5.0, 15.0)
+        precipitacao = rng.uniform(8.0, 30.0)
+
+    variacao_sensacao = rng.uniform(-1.0, 3.0) if categoria == "sol" else rng.uniform(-1.5, 1.0)
+    condicao = rng.choice(_CONDICOES_POR_CATEGORIA[categoria])
+
+    return ClimaAtual(
+        temperatura_celsius=round(temperatura, 1),
+        sensacao_termica_celsius=round(temperatura + variacao_sensacao, 1),
+        precipitacao_mm=round(precipitacao, 1),
+        velocidade_vento_kmh=round(max(vento, 0.0), 1),
+        condicao=condicao,
+        categoria=categoria,
     )
-    resposta.raise_for_status()
-    dados = resposta.json()
-
-    # Com uma unica coordenada a API responde um objeto; com varias, uma lista.
-    itens = dados if isinstance(dados, list) else [dados]
-    if len(itens) != len(coordenadas):
-        raise WeatherServiceError("Resposta do Open-Meteo em formato inesperado.")
-
-    climas: dict[Coordenada, ClimaAtual] = {}
-    for coordenada, item in zip(coordenadas, itens):
-        atual = item["current"]
-        codigo = int(atual["weather_code"])
-        temperatura = float(atual["temperature_2m"])
-        vento = float(atual["wind_speed_10m"])
-
-        climas[coordenada] = ClimaAtual(
-            temperatura_celsius=temperatura,
-            sensacao_termica_celsius=float(atual["apparent_temperature"]),
-            precipitacao_mm=float(atual["precipitation"]),
-            velocidade_vento_kmh=vento,
-            condicao=_descrever_weather_code(codigo),
-            categoria=_categorizar(codigo, temperatura, vento),
-        )
-
-    return climas
 
 
 def obter_climas_atuais(coordenadas: list[Coordenada]) -> dict[Coordenada, ClimaAtual]:
-    """Retorna o clima atual para varias coordenadas de uma so vez.
+    """Simula o clima atual para varias coordenadas, sem nenhuma chamada de rede.
 
-    - Coordenadas com cache fresco (< CACHE_TTL_SEGUNDOS) nunca disparam
-      requisicao de rede.
-    - As coordenadas restantes sao buscadas em uma UNICA chamada em lote ao
-      Open-Meteo, evitando o disparo de uma requisicao por praia/cidade.
-    - Se a chamada em lote falhar (ex: 429, timeout, instabilidade), o ultimo
-      valor conhecido de cada coordenada (cache estaleiro) e reaproveitado em
-      vez de propagar o erro, para que o chat nunca quebre por causa do clima.
-    - Uma coordenada sem nenhum cache previo e sem resposta valida da API
-      simplesmente fica de fora do dicionario retornado; quem chamar deve
-      tratar a ausencia como "clima indisponivel".
+    O resultado e determinado pela epoca do ano (mes atual) e pela coordenada,
+    com uma pequena variacao pseudo-aleatoria porem estavel ao longo do dia
+    (mesma coordenada + mesmo dia = mesmo resultado). Isso elimina por completo
+    a dependencia de APIs externas de clima e o risco de erros como 429.
     """
     if not coordenadas:
         return {}
 
-    agora = time.monotonic()
+    referencia = date.today()
     resultado: dict[Coordenada, ClimaAtual] = {}
-
-    with _lock:
-        chaves_unicas = list(dict.fromkeys(_chave(lat, lon) for lat, lon in coordenadas))
-        pendentes = []
-        for chave in chaves_unicas:
-            entrada = _cache.get(chave)
-            if entrada is not None and _cache_fresco(entrada, agora):
-                resultado[chave] = entrada.clima
-            else:
-                pendentes.append(chave)
-
-        if not pendentes:
-            return resultado
-
-        try:
-            climas_novos = _buscar_lote(pendentes)
-        except (httpx.HTTPError, WeatherServiceError, KeyError, TypeError, ValueError) as error:
-            logger.warning(
-                "Falha ao consultar Open-Meteo em lote para %s coordenada(s): %s",
-                len(pendentes),
-                error,
-            )
-            climas_novos = {}
-
-        for chave in pendentes:
-            clima_novo = climas_novos.get(chave)
-            if clima_novo is not None:
-                _cache[chave] = _EntradaCache(clima=clima_novo, obtido_em=agora)
-                resultado[chave] = clima_novo
-                continue
-
-            entrada_estaleira = _cache.get(chave)
-            if entrada_estaleira is not None:
-                logger.info("Usando cache estaleiro de clima para %s", chave)
-                resultado[chave] = entrada_estaleira.clima
+    for latitude, longitude in coordenadas:
+        chave = _chave(latitude, longitude)
+        if chave not in resultado:
+            resultado[chave] = _gerar_clima_simulado(chave, referencia)
 
     return resultado
 
 
 def obter_clima_atual(latitude: float, longitude: float) -> ClimaAtual:
-    """Busca o clima de uma unica coordenada (usa o mesmo cache/lote)."""
-    climas = obter_climas_atuais([(latitude, longitude)])
-    clima = climas.get(_chave(latitude, longitude))
-    if clima is None:
-        raise WeatherServiceError("Nao foi possivel obter a previsao do tempo agora.")
-    return clima
+    """Simula o clima atual de uma unica coordenada (ver obter_climas_atuais)."""
+    return obter_climas_atuais([(latitude, longitude)])[_chave(latitude, longitude)]

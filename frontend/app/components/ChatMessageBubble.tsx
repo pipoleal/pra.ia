@@ -1,3 +1,4 @@
+import ReactMarkdown, { type Components } from "react-markdown";
 import type { ChatMessage } from "../types";
 import { WaveAvatar } from "./WaveAvatar";
 
@@ -7,6 +8,31 @@ function formatarHora(timestamp: number) {
     minute: "2-digit",
   });
 }
+
+const markdownComponents: Components = {
+  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+  em: ({ children }) => <em className="italic">{children}</em>,
+  a: ({ href, children }) => (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="font-medium text-turquoise-700 underline decoration-turquoise-400/60 underline-offset-2 hover:text-turquoise-800"
+    >
+      {children}
+    </a>
+  ),
+  ul: ({ children }) => <ul className="mb-2 ml-4 list-disc space-y-1 last:mb-0">{children}</ul>,
+  ol: ({ children }) => <ol className="mb-2 ml-4 list-decimal space-y-1 last:mb-0">{children}</ol>,
+  li: ({ children }) => <li>{children}</li>,
+  h1: ({ children }) => <h3 className="mb-1 mt-2 text-base font-semibold first:mt-0">{children}</h3>,
+  h2: ({ children }) => <h3 className="mb-1 mt-2 text-base font-semibold first:mt-0">{children}</h3>,
+  h3: ({ children }) => <h3 className="mb-1 mt-2 text-base font-semibold first:mt-0">{children}</h3>,
+  code: ({ children }) => (
+    <code className="rounded bg-navy-900/10 px-1 py-0.5 text-[13px]">{children}</code>
+  ),
+};
 
 export function ChatMessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
@@ -25,15 +51,19 @@ export function ChatMessageBubble({ message }: { message: ChatMessage }) {
         }`}
       >
         <div
-          className={`whitespace-pre-wrap wrap-break-word px-4 py-3 text-[15px] leading-relaxed shadow-md ${
+          className={`wrap-break-word px-4 py-3 text-[15px] leading-relaxed shadow-md ${
             isUser
-              ? "rounded-2xl rounded-br-sm bg-linear-to-br from-turquoise-400 via-turquoise-600 to-navy-900 text-white"
+              ? "whitespace-pre-wrap rounded-2xl rounded-br-sm bg-linear-to-br from-turquoise-400/90 via-turquoise-600/90 to-navy-900/90 text-white backdrop-blur-sm"
               : message.error
-                ? "rounded-2xl rounded-bl-sm border border-red-300/70 bg-red-50/90 text-red-700 backdrop-blur-sm"
-                : "rounded-2xl rounded-bl-sm border border-white/70 bg-sand-50/90 text-navy-900 backdrop-blur-sm"
+                ? "rounded-2xl rounded-bl-sm border border-red-300/60 bg-red-50/70 text-red-700 backdrop-blur-md"
+                : "rounded-2xl rounded-bl-sm border border-white/60 bg-sand-50/70 text-navy-900 backdrop-blur-md"
           }`}
         >
-          {message.content}
+          {isUser ? (
+            message.content
+          ) : (
+            <ReactMarkdown components={markdownComponents}>{message.content}</ReactMarkdown>
+          )}
         </div>
         {message.timestamp !== undefined && (
           <span className="px-1 text-xs text-sand-50/80 drop-shadow-sm">

@@ -27,15 +27,15 @@ export function ChatInput({ value, onChange, onSubmit, disabled, textareaRef }: 
 
   return (
     <div
-      className="sticky bottom-0 z-10 border-t border-white/25 bg-sand-50/40 px-3 pt-3 shadow-[0_-4px_24px_-8px_rgba(8,15,29,0.35)] backdrop-blur-2xl sm:px-6"
-      style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+      className="sticky bottom-0 z-10 px-3 pt-2 sm:px-6"
+      style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
       <form
         onSubmit={(event) => {
           event.preventDefault();
           onSubmit();
         }}
-        className="mx-auto flex w-full max-w-3xl items-end gap-2"
+        className="mx-auto flex w-full max-w-3xl items-end gap-1.5 rounded-[1.75rem] border border-turquoise-300/50 bg-white/35 p-1.5 pl-4 shadow-[0_12px_32px_-12px_rgba(8,15,29,0.55)] backdrop-blur-2xl transition focus-within:border-turquoise-400/80 focus-within:ring-2 focus-within:ring-turquoise-300/30"
       >
         <textarea
           ref={textareaRef}
@@ -45,13 +45,13 @@ export function ChatInput({ value, onChange, onSubmit, disabled, textareaRef }: 
           placeholder="Pergunte sobre praias, clima ou dicas do Litoral Norte..."
           rows={1}
           disabled={disabled}
-          className="max-h-40 flex-1 resize-none rounded-2xl border border-turquoise-300/70 bg-white/50 px-4 py-3 text-navy-900 placeholder:text-navy-700/50 outline-none backdrop-blur-xl transition focus:border-turquoise-500 focus:ring-2 focus:ring-turquoise-300/40 disabled:opacity-60"
+          className="max-h-40 flex-1 resize-none border-none bg-transparent py-2.5 text-navy-900 placeholder:text-navy-700/50 outline-none focus:ring-0 disabled:opacity-60"
         />
         <button
           type="submit"
           disabled={!podeEnviar}
           aria-label="Enviar mensagem"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-turquoise-400 via-turquoise-600 to-navy-900 text-white shadow-md transition enabled:hover:brightness-110 enabled:active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-turquoise-400 via-turquoise-600 to-navy-900 text-white shadow-md transition enabled:hover:brightness-110 enabled:active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
             <path
@@ -64,7 +64,7 @@ export function ChatInput({ value, onChange, onSubmit, disabled, textareaRef }: 
           </svg>
         </button>
       </form>
-      <p className="mx-auto mt-1.5 hidden max-w-3xl text-center text-xs text-navy-800/60 sm:block">
+      <p className="mx-auto mt-2 hidden max-w-3xl text-center text-xs text-sand-100/50 sm:block">
         Pressione Enter para enviar · Shift + Enter para quebrar linha
       </p>
     </div>

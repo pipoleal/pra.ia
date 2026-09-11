@@ -1,10 +1,8 @@
 import logging
-import os
+import random
+import unicodedata
 
-from google import genai
-from google.genai import types
-
-from app.services.weather_service import obter_climas_atuais
+from app.services.weather_service import ClimaAtual, obter_climas_atuais
 
 
 logger = logging.getLogger(__name__)
@@ -14,98 +12,87 @@ class AIServiceError(RuntimeError):
     pass
 
 
-SYSTEM_INSTRUCTION = """
-Voce e a pra.ia, uma guia local carismatica e especialista no Litoral Norte de
-Sao Paulo. Priorize conforto, praticidade e seguranca do turista. Recomende
-trilhas pesadas somente quando o usuario solicitar explicitamente. Baseie suas
-respostas no contexto recebido; se faltar informacao, deixe isso claro. Ao
-mencionar comercios ou pousadas com links, apresente o nome e o link de forma
-natural na frase, sem inventar estabelecimentos, precos, horarios ou URLs.
+_CIDADES_LITORAL_NORTE = ("São Sebastião", "Ilhabela", "Caraguatatuba", "Ubatuba")
 
-Voce tambem recebe o clima atual de cada cidade do Litoral Norte (temperatura,
-chuva, vento e uma categoria resumo). Use essas informacoes para adaptar a
-recomendacao:
-- Categoria "chuva", "frente_fria" ou "tempestade": priorize praias com mar
-  calmo e abrigado (veja o campo "Caracteristicas do mar" de cada praia),
-  reforce as dicas de seguranca (correntes, raios, rios cheios, pedras
-  escorregadias) e sugira comercios proximos como restaurantes e quiosques
-  para o turista se abrigar.
-- Categoria "sol": pode sugerir tanto praias calmas para familia quanto
-  praias de ondas fortes para surf/bodyboard, conforme o perfil do turista.
-- Categoria "nublado": trate como uma condicao neutra, sem restricoes
-  adicionais alem das dicas de seguranca padrao da praia.
-- Sempre que recomendar uma praia, mencione de forma natural a condicao
-  climatica atual da cidade dela (ex.: "como esta chovendo em Ubatuba hoje,
-  prefira...").
-- Se o clima de uma cidade estiver marcado como indisponivel, avise o
-  turista que nao foi possivel confirmar a previsao e baseie-se apenas nos
-  dados da praia.
+_PALAVRAS_CRIANCA = {
+    "crianca", "criancas", "filho", "filhos", "filha", "filhas", "familia",
+    "bebe", "infantil", "pequenos",
+}
+_PALAVRAS_CALMO = {
+    "calma", "calmo", "tranquila", "tranquilo", "sossego", "descanso",
+    "relaxar", "paz", "quieta", "quieto",
+}
+_PALAVRAS_SURF = {
+    "surf", "surfar", "onda", "ondas", "bodyboard", "swell", "surfista",
+}
+_PALAVRAS_COMIDA = {
+    "restaurante", "restaurantes", "quiosque", "quiosques", "comer",
+    "comida", "almoco", "almocar", "bar", "gastronomia",
+}
+_MAR_TRANQUILO = ("calmo", "protegid", "tranquil", "abrigad", "raso", "sem ondas")
+_MAR_AGITADO = ("ondas fortes", "agitad", "correnteza forte", "ondas boas para surf", "boas ondas")
 
-Responda em portugues brasileiro, de modo objetivo e acolhedor.
-""".strip()
-
-
-def _formatar_contexto_clima(climas_por_cidade: dict[str, "object | None"]) -> str:
-    if not climas_por_cidade:
-        return "Nenhuma cidade disponivel para consulta de clima."
-
-    linhas = []
-    for cidade, clima in climas_por_cidade.items():
-        if clima is None:
-            linhas.append(f"- {cidade}: clima indisponivel no momento.")
-            continue
-
-        linhas.append(
-            f"- {cidade}: {clima.condicao}, {clima.temperatura_celsius:.1f}°C "
-            f"(sensacao {clima.sensacao_termica_celsius:.1f}°C), "
-            f"vento {clima.velocidade_vento_kmh:.0f} km/h, "
-            f"chuva {clima.precipitacao_mm:.1f} mm — categoria: {clima.categoria}."
-        )
-
-    return "\n".join(linhas)
+_ABERTURAS_CRIANCA = (
+    "Para curtir com a família em segurança, essas são minhas favoritas hoje:",
+    "Ótima escolha pensar na criançada! Olha essas opções tranquilas:",
+)
+_ABERTURAS_SURF = (
+    "Bora pegar onda! Essas praias estão com o mar mais favorável hoje:",
+    "Para surfar hoje, essas são as melhores pedidas do Litoral Norte:",
+)
+_ABERTURAS_CIDADE = (
+    "Olha o que encontrei em {cidade} para você:",
+    "Em {cidade}, essas são as melhores opções agora:",
+)
+_ABERTURAS_GERAL = (
+    "Show, deixa eu te ajudar a escolher! 🌊",
+    "Com base no clima de hoje, aqui vão minhas recomendações:",
+    "Boa pergunta! Olha só o que separei para você:",
+)
+_FECHAMENTOS = (
+    "Quer que eu foque em outro perfil (família, surf, tranquilidade) ou em uma cidade específica?",
+    "Se quiser, me conta mais sobre o que procura (surf, sossego, estrutura) que eu refino a sugestão.",
+    "Posso detalhar mais alguma dessas praias, é só pedir!",
+)
 
 
-def _formatar_contexto_praias(praias_contexto: list) -> str:
-    if not praias_contexto:
-        return "Nenhuma praia esta cadastrada no momento."
+def _normalizar(texto: str) -> str:
+    texto = texto.lower().strip()
+    texto = unicodedata.normalize("NFKD", texto)
+    return "".join(caractere for caractere in texto if not unicodedata.combining(caractere))
 
-    praias_formatadas = []
+
+def _contem_palavra(texto_normalizado: str, palavras: set[str]) -> bool:
+    tokens = set(texto_normalizado.replace(",", " ").replace(".", " ").split())
+    return not tokens.isdisjoint(palavras)
+
+
+def _detectar_intencoes(mensagem: str, praias_contexto: list) -> dict:
+    mensagem_normalizada = _normalizar(mensagem)
+
+    cidade_mencionada = None
+    for cidade in _CIDADES_LITORAL_NORTE:
+        if _normalizar(cidade) in mensagem_normalizada:
+            cidade_mencionada = cidade
+            break
+
+    praia_mencionada = None
     for praia in praias_contexto:
-        detalhes = [
-            f"Praia: {praia.nome}",
-            f"Cidade: {praia.cidade}",
-            f"Coordenadas: {praia.latitude}, {praia.longitude}",
-            f"Nivel de infraestrutura: {praia.nivel_infraestrutura}",
-            f"Descricao: {praia.descricao}",
-            f"Caracteristicas do mar: {praia.caracteristicas_mar}",
-            f"Faixa de areia: {praia.faixa_areia}",
-            f"Dicas de seguranca: {praia.dicas_seguranca}",
-        ]
+        if _normalizar(praia.nome) in mensagem_normalizada:
+            praia_mencionada = praia.nome
+            break
 
-        comercios = getattr(praia, "comercios", [])
-        if comercios:
-            detalhes.append("Comercios proximos:")
-            for comercio in comercios:
-                distancia = (
-                    f", a {comercio.distancia_areia_metros} m da areia"
-                    if comercio.distancia_areia_metros is not None
-                    else ""
-                )
-                link = (
-                    f" Link: {comercio.link_afiliado}."
-                    if comercio.link_afiliado
-                    else ""
-                )
-                detalhes.append(
-                    f"- {comercio.nome} ({comercio.categoria}){distancia}.{link}"
-                )
-
-        praias_formatadas.append("\n".join(detalhes))
-
-    return "\n\n".join(praias_formatadas)
+    return {
+        "quer_familia": _contem_palavra(mensagem_normalizada, _PALAVRAS_CRIANCA),
+        "quer_calmo": _contem_palavra(mensagem_normalizada, _PALAVRAS_CALMO),
+        "quer_surf": _contem_palavra(mensagem_normalizada, _PALAVRAS_SURF),
+        "quer_comida": _contem_palavra(mensagem_normalizada, _PALAVRAS_COMIDA),
+        "cidade": cidade_mencionada,
+        "praia_especifica": praia_mencionada,
+    }
 
 
-def _obter_climas_por_cidade(praias_contexto: list) -> dict:
+def _obter_climas_por_cidade(praias_contexto: list) -> dict[str, ClimaAtual | None]:
     coordenadas_por_cidade: dict[str, tuple[float, float]] = {}
     for praia in praias_contexto:
         coordenadas_por_cidade.setdefault(praia.cidade, (praia.latitude, praia.longitude))
@@ -119,7 +106,7 @@ def _obter_climas_por_cidade(praias_contexto: list) -> dict:
         logger.exception("Falha inesperada ao consultar o clima em lote")
         climas_por_coordenada = {}
 
-    climas_por_cidade: dict[str, object | None] = {}
+    climas_por_cidade: dict[str, ClimaAtual | None] = {}
     for cidade, (latitude, longitude) in coordenadas_por_cidade.items():
         chave = (round(latitude, 2), round(longitude, 2))
         climas_por_cidade[cidade] = climas_por_coordenada.get(chave)
@@ -127,34 +114,118 @@ def _obter_climas_por_cidade(praias_contexto: list) -> dict:
     return climas_por_cidade
 
 
+def _pontuar_praia(praia, clima: ClimaAtual | None, intencoes: dict) -> float:
+    if intencoes["praia_especifica"] and praia.nome == intencoes["praia_especifica"]:
+        return 1000.0
+
+    caracteristicas = _normalizar(f"{praia.caracteristicas_mar} {praia.descricao}")
+    pontuacao = float(praia.nivel_infraestrutura) * 0.1
+
+    quer_tranquilidade = intencoes["quer_familia"] or intencoes["quer_calmo"]
+    if quer_tranquilidade:
+        if any(termo in caracteristicas for termo in _MAR_TRANQUILO):
+            pontuacao += 3
+        if any(termo in caracteristicas for termo in _MAR_AGITADO):
+            pontuacao -= 2
+        if intencoes["quer_familia"]:
+            pontuacao += praia.nivel_infraestrutura * 0.3
+
+    if intencoes["quer_surf"]:
+        if any(termo in caracteristicas for termo in _MAR_AGITADO) or "surf" in caracteristicas:
+            pontuacao += 3
+        if any(termo in caracteristicas for termo in _MAR_TRANQUILO):
+            pontuacao -= 1
+
+    if intencoes["quer_comida"]:
+        pontuacao += len(getattr(praia, "comercios", [])) * 1.5
+
+    if clima is not None:
+        if clima.categoria in ("chuva", "frente_fria", "tempestade"):
+            if any(termo in caracteristicas for termo in _MAR_TRANQUILO):
+                pontuacao += 2
+            if any(termo in caracteristicas for termo in _MAR_AGITADO):
+                pontuacao -= 1.5
+        elif clima.categoria == "sol":
+            pontuacao += 0.5
+
+    return pontuacao
+
+
+def _resumo_clima(clima: ClimaAtual | None) -> str:
+    if clima is None:
+        return "não consegui confirmar o clima agora"
+    return f"{clima.condicao}, {clima.temperatura_celsius:.0f}°C"
+
+
+def _bloco_praia(praia, clima: ClimaAtual | None, mencionar_falta_de_comercio: bool = False) -> str:
+    titulo = praia.nome if praia.cidade in praia.nome else f"{praia.nome} ({praia.cidade})"
+    linhas = [f"### {titulo}"]
+    linhas.append(f"Hoje está **{_resumo_clima(clima)}** por lá. {praia.caracteristicas_mar}")
+    linhas.append(f"**Faixa de areia:** {praia.faixa_areia}")
+
+    comercios = getattr(praia, "comercios", [])
+    if comercios:
+        comercio = comercios[0]
+        if comercio.link_afiliado:
+            linhas.append(
+                f"**Para comer:** [{comercio.nome}]({comercio.link_afiliado}) ({comercio.categoria})."
+            )
+        else:
+            linhas.append(f"**Para comer:** {comercio.nome} ({comercio.categoria}).")
+    elif mencionar_falta_de_comercio:
+        linhas.append("**Para comer:** ainda não tenho comércios cadastrados perto dessa praia.")
+
+    linhas.append(f"**Dica de segurança:** {praia.dicas_seguranca}")
+    return "\n\n".join(linhas)
+
+
 def gerar_recomendacao(mensagem_usuario: str, praias_contexto: list) -> str:
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise AIServiceError(
-            "A integracao de IA nao esta configurada. Defina GEMINI_API_KEY no Render."
-        )
+    """Motor de recomendacao por regras: cruza clima simulado + palavras-chave
+    da pergunta do usuario para escolher praias, sem depender de nenhuma API
+    de IA de terceiros.
+    """
+    if not praias_contexto:
+        return "Ainda não tenho nenhuma praia cadastrada para recomendar. Volte em breve!"
 
+    intencoes = _detectar_intencoes(mensagem_usuario, praias_contexto)
     climas_por_cidade = _obter_climas_por_cidade(praias_contexto)
-    contexto_clima = _formatar_contexto_clima(climas_por_cidade)
-    contexto_praias = _formatar_contexto_praias(praias_contexto)
 
-    try:
-        client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
-            model="gemini-3.6-flash",
-            contents=(
-                f"Clima atual nas cidades do Litoral Norte:\n{contexto_clima}\n\n"
-                f"Contexto de praias cadastradas:\n{contexto_praias}\n\n"
-                f"Pergunta do turista: {mensagem_usuario}"
-            ),
-            config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION),
+    candidatas = praias_contexto
+    if intencoes["cidade"] is not None:
+        filtradas = [praia for praia in praias_contexto if praia.cidade == intencoes["cidade"]]
+        if filtradas:
+            candidatas = filtradas
+
+    semente = random.Random(hash(mensagem_usuario.strip().lower()) & 0xFFFFFFFF)
+
+    candidatas_ordenadas = sorted(
+        candidatas,
+        key=lambda praia: _pontuar_praia(praia, climas_por_cidade.get(praia.cidade), intencoes),
+        reverse=True,
+    )
+
+    limite = 1 if intencoes["praia_especifica"] else 2
+    escolhidas = candidatas_ordenadas[:limite]
+
+    if intencoes["praia_especifica"]:
+        abertura = f"Sobre a {intencoes['praia_especifica']}, aqui está o que sei:"
+    elif intencoes["quer_familia"]:
+        abertura = semente.choice(_ABERTURAS_CRIANCA)
+    elif intencoes["quer_surf"]:
+        abertura = semente.choice(_ABERTURAS_SURF)
+    elif intencoes["cidade"]:
+        abertura = semente.choice(_ABERTURAS_CIDADE).format(cidade=intencoes["cidade"])
+    else:
+        abertura = semente.choice(_ABERTURAS_GERAL)
+
+    blocos = [
+        _bloco_praia(
+            praia,
+            climas_por_cidade.get(praia.cidade),
+            mencionar_falta_de_comercio=intencoes["quer_comida"],
         )
-    except Exception as error:
-        raise AIServiceError(
-            "Nao foi possivel gerar uma recomendacao agora. Tente novamente."
-        ) from error
+        for praia in escolhidas
+    ]
+    fechamento = semente.choice(_FECHAMENTOS)
 
-    if not response.text:
-        raise AIServiceError("A IA nao retornou uma recomendacao. Tente novamente.")
-
-    return response.text
+    return "\n\n".join([abertura, *blocos, fechamento])

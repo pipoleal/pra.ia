@@ -1,0 +1,35 @@
+:root {
+  color: #1b2f33;
+  background: #f7faf8;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  width: min(100% - 32px, 720px);
+  margin: 64px auto;
+}
+
+textarea {
+  display: block;
+  width: 100%;
+  min-height: 120px;
+  margin: 8px 0 16px;
+  padding: 12px;
+  font: inherit;
+}
+
+button {
+  padding: 10px 16px;
+  color: #fff;
+  background: #176f73;
+  border: 0;
+  cursor: pointer;
+}

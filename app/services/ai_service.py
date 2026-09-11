@@ -67,7 +67,7 @@ def gerar_recomendacao(mensagem_usuario: str, praias_contexto: list) -> str:
     try:
         client = genai.Client(api_key=api_key)
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.6-flash",
             contents=(
                 f"Contexto de praias cadastradas:\n{contexto}\n\n"
                 f"Pergunta do turista: {mensagem_usuario}"

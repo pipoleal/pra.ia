@@ -4,6 +4,10 @@ from google import genai
 from google.genai import types
 
 
+class AIServiceError(RuntimeError):
+    pass
+
+
 SYSTEM_INSTRUCTION = """
 Voce e a pra.ia, uma guia local carismatica e especialista no Litoral Norte de
 Sao Paulo. Priorize conforto, praticidade e seguranca do turista. Recomende
@@ -55,20 +59,27 @@ def _formatar_contexto_praias(praias_contexto: list) -> str:
 def gerar_recomendacao(mensagem_usuario: str, praias_contexto: list) -> str:
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        raise RuntimeError("GEMINI_API_KEY nao configurada")
+        raise AIServiceError(
+            "A integracao de IA nao esta configurada. Defina GEMINI_API_KEY no Render."
+        )
 
     contexto = _formatar_contexto_praias(praias_contexto)
-    client = genai.Client(api_key=api_key)
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=(
-            f"Contexto de praias cadastradas:\n{contexto}\n\n"
-            f"Pergunta do turista: {mensagem_usuario}"
-        ),
-        config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION),
-    )
+    try:
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=(
+                f"Contexto de praias cadastradas:\n{contexto}\n\n"
+                f"Pergunta do turista: {mensagem_usuario}"
+            ),
+            config=types.GenerateContentConfig(system_instruction=SYSTEM_INSTRUCTION),
+        )
+    except Exception as error:
+        raise AIServiceError(
+            "Nao foi possivel gerar uma recomendacao agora. Tente novamente."
+        ) from error
 
     if not response.text:
-        raise RuntimeError("O Gemini nao retornou uma resposta")
+        raise AIServiceError("A IA nao retornou uma recomendacao. Tente novamente.")
 
     return response.text

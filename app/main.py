@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select, text
@@ -7,7 +9,10 @@ from sqlalchemy.orm import Session, selectinload
 from app.database import engine, get_db
 from app.models import Base, Praia
 from app.schemas import ChatRequest, ChatResponse, PraiaCreate, PraiaResponse
-from app.services.ai_service import gerar_recomendacao
+from app.services.ai_service import AIServiceError, gerar_recomendacao
+
+
+logger = logging.getLogger(__name__)
 
 
 app = FastAPI(title="praIA", version="0.1.0")
@@ -55,13 +60,25 @@ def list_praias(db: Session = Depends(get_db)) -> list[Praia]:
 
 @app.post("/chat/", response_model=ChatResponse)
 def chat(request: ChatRequest, db: Session = Depends(get_db)) -> ChatResponse:
-    praias = list(
-        db.scalars(select(Praia).options(selectinload(Praia.comercios))).all()
-    )
-
     try:
+        praias = list(
+            db.scalars(select(Praia).options(selectinload(Praia.comercios))).all()
+        )
         resposta = gerar_recomendacao(request.mensagem, praias)
-    except RuntimeError as error:
-        raise HTTPException(status_code=503, detail=str(error)) from error
+    except AIServiceError as error:
+        logger.exception("Falha ao gerar recomendacao")
+        raise HTTPException(status_code=500, detail=str(error)) from error
+    except SQLAlchemyError as error:
+        logger.exception("Falha ao consultar praias para o chat")
+        raise HTTPException(
+            status_code=500,
+            detail="Nao foi possivel consultar os dados das praias. Tente novamente.",
+        ) from error
+    except Exception as error:
+        logger.exception("Falha inesperada na rota de chat")
+        raise HTTPException(
+            status_code=500,
+            detail="Nao foi possivel processar sua mensagem. Tente novamente.",
+        ) from error
 
     return ChatResponse(resposta=resposta)

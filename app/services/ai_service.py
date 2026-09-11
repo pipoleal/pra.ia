@@ -4,7 +4,7 @@ import os
 from google import genai
 from google.genai import types
 
-from app.services.weather_service import WeatherServiceError, obter_clima_atual
+from app.services.weather_service import obter_climas_atuais
 
 
 logger = logging.getLogger(__name__)
@@ -110,13 +110,19 @@ def _obter_climas_por_cidade(praias_contexto: list) -> dict:
     for praia in praias_contexto:
         coordenadas_por_cidade.setdefault(praia.cidade, (praia.latitude, praia.longitude))
 
+    if not coordenadas_por_cidade:
+        return {}
+
+    try:
+        climas_por_coordenada = obter_climas_atuais(list(coordenadas_por_cidade.values()))
+    except Exception:
+        logger.exception("Falha inesperada ao consultar o clima em lote")
+        climas_por_coordenada = {}
+
     climas_por_cidade: dict[str, object | None] = {}
     for cidade, (latitude, longitude) in coordenadas_por_cidade.items():
-        try:
-            climas_por_cidade[cidade] = obter_clima_atual(latitude, longitude)
-        except WeatherServiceError:
-            logger.warning("Clima indisponivel para %s", cidade, exc_info=True)
-            climas_por_cidade[cidade] = None
+        chave = (round(latitude, 2), round(longitude, 2))
+        climas_por_cidade[cidade] = climas_por_coordenada.get(chave)
 
     return climas_por_cidade
 

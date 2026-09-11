@@ -8,6 +8,9 @@ class PraiaBase(BaseModel):
     longitude: float
     nivel_infraestrutura: int
     descricao: str
+    caracteristicas_mar: str
+    faixa_areia: str
+    dicas_seguranca: str
 
 
 class PraiaCreate(PraiaBase):

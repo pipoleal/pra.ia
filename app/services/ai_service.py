@@ -31,6 +31,9 @@ def _formatar_contexto_praias(praias_contexto: list) -> str:
             f"Coordenadas: {praia.latitude}, {praia.longitude}",
             f"Nivel de infraestrutura: {praia.nivel_infraestrutura}",
             f"Descricao: {praia.descricao}",
+            f"Caracteristicas do mar: {praia.caracteristicas_mar}",
+            f"Faixa de areia: {praia.faixa_areia}",
+            f"Dicas de seguranca: {praia.dicas_seguranca}",
         ]
 
         comercios = getattr(praia, "comercios", [])

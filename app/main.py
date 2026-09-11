@@ -2,13 +2,14 @@ import logging
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import select, text
+from sqlalchemy import inspect, select, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import engine, get_db
 from app.models import Base, Praia
 from app.schemas import ChatRequest, ChatResponse, PraiaCreate, PraiaResponse
+from app.seed import seed
 from app.services.ai_service import AIServiceError, gerar_recomendacao
 
 
@@ -25,7 +26,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+def _upgrade_schema() -> None:
+    """Adiciona colunas novas em bancos ja existentes (nao ha Alembic no projeto)."""
+    inspector = inspect(engine)
+    if "praia" not in inspector.get_table_names():
+        return
+
+    colunas_existentes = {coluna["name"] for coluna in inspector.get_columns("praia")}
+    colunas_novas = ("caracteristicas_mar", "faixa_areia", "dicas_seguranca")
+    faltantes = [coluna for coluna in colunas_novas if coluna not in colunas_existentes]
+    if not faltantes:
+        return
+
+    with engine.begin() as connection:
+        for coluna in faltantes:
+            connection.execute(
+                text(f"ALTER TABLE praia ADD COLUMN {coluna} TEXT NOT NULL DEFAULT ''")
+            )
+
+
 Base.metadata.create_all(bind=engine)
+_upgrade_schema()
+
+try:
+    seed()
+except SQLAlchemyError:
+    logger.exception("Falha ao executar o seed inicial de praias")
 
 
 @app.get("/")
@@ -56,6 +83,19 @@ def create_praia(praia: PraiaCreate, db: Session = Depends(get_db)) -> Praia:
 @app.get("/praias/", response_model=list[PraiaResponse])
 def list_praias(db: Session = Depends(get_db)) -> list[Praia]:
     return list(db.scalars(select(Praia)).all())
+
+
+@app.post("/praias/seed", status_code=200)
+def seed_praias() -> dict[str, str]:
+    try:
+        seed()
+    except SQLAlchemyError as error:
+        logger.exception("Falha ao executar o seed de praias via endpoint")
+        raise HTTPException(
+            status_code=500, detail="Nao foi possivel executar o seed de praias."
+        ) from error
+
+    return {"status": "ok", "message": "Seed de praias executado com sucesso."}
 
 
 @app.post("/chat/", response_model=ChatResponse)

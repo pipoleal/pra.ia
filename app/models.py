@@ -18,6 +18,9 @@ class Praia(Base):
     longitude: Mapped[float] = mapped_column(Float)
     nivel_infraestrutura: Mapped[int] = mapped_column(Integer)
     descricao: Mapped[str] = mapped_column(Text)
+    caracteristicas_mar: Mapped[str] = mapped_column(Text, server_default="")
+    faixa_areia: Mapped[str] = mapped_column(Text, server_default="")
+    dicas_seguranca: Mapped[str] = mapped_column(Text, server_default="")
 
     comercios: Mapped[list["Comercio"]] = relationship(back_populates="praia")
     monitoramentos: Mapped[list["MonitoramentoPraia"]] = relationship(

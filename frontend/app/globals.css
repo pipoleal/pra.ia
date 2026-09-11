@@ -1,35 +1,80 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  --color-ocean-50: #eefaf9;
+  --color-ocean-100: #d3f1f0;
+  --color-ocean-200: #a8e3e1;
+  --color-ocean-300: #74cfcd;
+  --color-ocean-400: #3fb4b3;
+  --color-ocean-500: #1f9a9b;
+  --color-ocean-600: #167f81;
+  --color-ocean-700: #146669;
+  --color-ocean-800: #145256;
+  --color-ocean-900: #0f393c;
+
+  --color-sand-50: #fdfbf5;
+  --color-sand-100: #f8f0dd;
+  --color-sand-200: #f0e0bb;
+  --color-sand-300: #e6cb8f;
+  --color-sand-400: #dab264;
+
+  --animate-message-in: message-in 0.25s ease-out;
+
+  @keyframes message-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
 :root {
-  color: #1b2f33;
-  background: #f7faf8;
-  font-family: Arial, Helvetica, sans-serif;
+  color-scheme: light;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
 body {
-  margin: 0;
+  height: 100%;
 }
 
-main {
-  width: min(100% - 32px, 720px);
-  margin: 64px auto;
+body {
+  margin: 0;
+  background: linear-gradient(180deg, var(--color-sand-50) 0%, #ffffff 55%);
+  color: var(--color-ocean-900);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
 }
 
 textarea {
-  display: block;
-  width: 100%;
-  min-height: 120px;
-  margin: 8px 0 16px;
-  padding: 12px;
   font: inherit;
 }
 
-button {
-  padding: 10px 16px;
-  color: #fff;
-  background: #176f73;
-  border: 0;
-  cursor: pointer;
+/* Evita zoom automatico no iOS ao focar campos de texto */
+input,
+textarea {
+  font-size: 16px;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-ocean-200);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }

@@ -25,18 +25,18 @@ export function ChatMessageBubble({ message }: { message: ChatMessage }) {
         }`}
       >
         <div
-          className={`whitespace-pre-wrap wrap-break-word px-4 py-3 text-[15px] leading-relaxed shadow-sm ${
+          className={`whitespace-pre-wrap wrap-break-word px-4 py-3 text-[15px] leading-relaxed shadow-md ${
             isUser
-              ? "rounded-2xl rounded-br-sm bg-linear-to-br from-ocean-500 to-ocean-600 text-white"
+              ? "rounded-2xl rounded-br-sm bg-linear-to-br from-turquoise-400 via-turquoise-600 to-navy-900 text-white"
               : message.error
-                ? "rounded-2xl rounded-bl-sm border border-red-200 bg-red-50 text-red-700"
-                : "rounded-2xl rounded-bl-sm border border-ocean-100 bg-white text-ocean-900"
+                ? "rounded-2xl rounded-bl-sm border border-red-300/70 bg-red-50/90 text-red-700 backdrop-blur-sm"
+                : "rounded-2xl rounded-bl-sm border border-white/70 bg-sand-50/90 text-navy-900 backdrop-blur-sm"
           }`}
         >
           {message.content}
         </div>
         {message.timestamp !== undefined && (
-          <span className="px-1 text-xs text-ocean-900/40">
+          <span className="px-1 text-xs text-sand-50/80 drop-shadow-sm">
             {formatarHora(message.timestamp)}
           </span>
         )}

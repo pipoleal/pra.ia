@@ -27,7 +27,7 @@ export function ChatInput({ value, onChange, onSubmit, disabled, textareaRef }: 
 
   return (
     <div
-      className="sticky bottom-0 z-10 border-t border-ocean-100 bg-white/90 px-3 pt-3 backdrop-blur-md sm:px-6"
+      className="sticky bottom-0 z-10 border-t border-white/25 bg-sand-50/40 px-3 pt-3 shadow-[0_-4px_24px_-8px_rgba(8,15,29,0.35)] backdrop-blur-2xl sm:px-6"
       style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
     >
       <form
@@ -45,13 +45,13 @@ export function ChatInput({ value, onChange, onSubmit, disabled, textareaRef }: 
           placeholder="Pergunte sobre praias, clima ou dicas do Litoral Norte..."
           rows={1}
           disabled={disabled}
-          className="max-h-40 flex-1 resize-none rounded-2xl border border-ocean-200 bg-sand-50/40 px-4 py-3 text-ocean-900 placeholder:text-ocean-900/40 outline-none transition focus:border-ocean-400 focus:ring-2 focus:ring-ocean-200 disabled:opacity-60"
+          className="max-h-40 flex-1 resize-none rounded-2xl border border-turquoise-300/70 bg-white/50 px-4 py-3 text-navy-900 placeholder:text-navy-700/50 outline-none backdrop-blur-xl transition focus:border-turquoise-500 focus:ring-2 focus:ring-turquoise-300/40 disabled:opacity-60"
         />
         <button
           type="submit"
           disabled={!podeEnviar}
           aria-label="Enviar mensagem"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-ocean-500 to-ocean-600 text-white shadow-sm transition enabled:hover:brightness-110 enabled:active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-turquoise-400 via-turquoise-600 to-navy-900 text-white shadow-md transition enabled:hover:brightness-110 enabled:active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
             <path
@@ -64,7 +64,7 @@ export function ChatInput({ value, onChange, onSubmit, disabled, textareaRef }: 
           </svg>
         </button>
       </form>
-      <p className="mx-auto mt-1.5 hidden max-w-3xl text-center text-xs text-ocean-900/35 sm:block">
+      <p className="mx-auto mt-1.5 hidden max-w-3xl text-center text-xs text-navy-800/60 sm:block">
         Pressione Enter para enviar · Shift + Enter para quebrar linha
       </p>
     </div>

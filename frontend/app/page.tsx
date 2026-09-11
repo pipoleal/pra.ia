@@ -106,13 +106,13 @@ export default function Home() {
   const mostrarSugestoes = messages.length === 1 && !carregando;
 
   return (
-    <div className="flex h-dvh flex-col bg-transparent">
-      <header className="border-b border-ocean-100 bg-white/80 px-4 py-3 backdrop-blur-md sm:px-6">
+    <div className="flex h-dvh flex-col">
+      <header className="border-b border-white/30 bg-sand-50/60 px-4 py-3 shadow-sm backdrop-blur-xl sm:px-6">
         <div className="mx-auto flex w-full max-w-3xl items-center gap-3">
           <WaveAvatar className="h-10 w-10" />
           <div>
-            <h1 className="text-base font-semibold text-ocean-900 sm:text-lg">pra.ia</h1>
-            <p className="text-xs text-ocean-900/50 sm:text-sm">
+            <h1 className="text-base font-semibold text-navy-900 sm:text-lg">pra.ia</h1>
+            <p className="text-xs text-navy-700/70 sm:text-sm">
               Guia do Litoral Norte de São Paulo
             </p>
           </div>
@@ -132,7 +132,7 @@ export default function Home() {
                   key={sugestao}
                   type="button"
                   onClick={() => selecionarSugestao(sugestao)}
-                  className="rounded-full border border-ocean-200 bg-white px-3.5 py-1.5 text-sm text-ocean-700 shadow-sm transition hover:border-ocean-400 hover:bg-ocean-50"
+                  className="rounded-full border border-turquoise-300/60 bg-sand-50/80 px-3.5 py-1.5 text-sm text-navy-800 shadow-sm backdrop-blur-sm transition hover:border-turquoise-400 hover:bg-sand-50"
                 >
                   {sugestao}
                 </button>

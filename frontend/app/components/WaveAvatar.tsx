@@ -1,7 +1,7 @@
 export function WaveAvatar({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-ocean-400 to-ocean-700 shadow-sm ${className}`}
+      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-turquoise-400 via-turquoise-600 to-navy-900 shadow-md ${className}`}
       aria-hidden="true"
     >
       <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 text-white" fill="none">

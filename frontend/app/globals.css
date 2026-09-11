@@ -3,17 +3,32 @@
 @theme {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-  --color-ocean-50: #eefaf9;
-  --color-ocean-100: #d3f1f0;
-  --color-ocean-200: #a8e3e1;
-  --color-ocean-300: #74cfcd;
-  --color-ocean-400: #3fb4b3;
-  --color-ocean-500: #1f9a9b;
-  --color-ocean-600: #167f81;
-  --color-ocean-700: #146669;
-  --color-ocean-800: #145256;
-  --color-ocean-900: #0f393c;
+  /* Turquesa vibrante - acoes, destaque, bolhas do usuario */
+  --color-turquoise-50: #eafffb;
+  --color-turquoise-100: #cdfaf3;
+  --color-turquoise-200: #9cf1e6;
+  --color-turquoise-300: #62e0d3;
+  --color-turquoise-400: #33c7bc;
+  --color-turquoise-500: #16aea3;
+  --color-turquoise-600: #0f8d85;
+  --color-turquoise-700: #12716c;
+  --color-turquoise-800: #145a57;
+  --color-turquoise-900: #124a49;
 
+  /* Azul marinho profundo - texto, contraste, gradientes de destaque */
+  --color-navy-50: #eef3fb;
+  --color-navy-100: #d7e2f4;
+  --color-navy-200: #aec2e6;
+  --color-navy-300: #7d9cd2;
+  --color-navy-400: #4e73b3;
+  --color-navy-500: #345490;
+  --color-navy-600: #253f72;
+  --color-navy-700: #1c3159;
+  --color-navy-800: #142440;
+  --color-navy-900: #0d182c;
+  --color-navy-950: #080f1d;
+
+  /* Neutros de areia - paineis e superficies */
   --color-sand-50: #fdfbf5;
   --color-sand-100: #f8f0dd;
   --color-sand-200: #f0e0bb;
@@ -49,8 +64,8 @@ body {
 
 body {
   margin: 0;
-  background: linear-gradient(180deg, var(--color-sand-50) 0%, #ffffff 55%);
-  color: var(--color-ocean-900);
+  background: var(--color-navy-950);
+  color: var(--color-navy-900);
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
 }
@@ -71,7 +86,7 @@ textarea {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: var(--color-ocean-200);
+  background-color: var(--color-turquoise-300);
   border-radius: 9999px;
 }
 

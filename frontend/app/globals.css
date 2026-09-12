@@ -93,3 +93,13 @@ textarea {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* Esconde a barra de rolagem da caixa de mensagem, mantendo o scroll */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

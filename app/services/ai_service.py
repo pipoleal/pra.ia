@@ -3,6 +3,7 @@ import os
 
 from groq import Groq
 
+from app.services.affiliate import link_com_afiliado
 from app.services.recommendation_rules import gerar_recomendacao_regras
 from app.services.weather_service import ClimaAtual, obter_climas_atuais
 
@@ -73,9 +74,10 @@ def _formatar_contexto_praias(praias_contexto: list) -> str:
 
         comercios = getattr(praia, "comercios", [])
         if comercios:
-            detalhes.append("Comercios proximos:")
+            detalhes.append("Comercios e hospedagens proximos:")
             for comercio in comercios:
-                link = f" Link: {comercio.link_afiliado}." if comercio.link_afiliado else ""
+                link_final = link_com_afiliado(comercio.link_afiliado)
+                link = f" Link: {link_final}." if link_final else ""
                 detalhes.append(f"- {comercio.nome} ({comercio.categoria}).{link}")
 
         blocos.append("\n".join(detalhes))

@@ -1,7 +1,21 @@
+from urllib.parse import quote
+
 from sqlalchemy import select
 
 from app.database import SessionLocal
 from app.models import Comercio, Praia
+
+
+def _link_busca_booking(nome_estabelecimento: str, cidade: str) -> str:
+    """Monta um link de busca no Booking.com para o estabelecimento.
+
+    O ID de afiliado (BOOKING_AFFILIATE_ID) e adicionado dinamicamente na
+    hora de exibir o link (ver app/services/affiliate.py), entao o mesmo
+    link ja funciona hoje e passa a gerar comissao assim que o ID real for
+    configurado, sem precisar rodar o seed novamente.
+    """
+    termo_busca = quote(f"{nome_estabelecimento}, {cidade}")
+    return f"https://www.booking.com/searchresults.html?ss={termo_busca}"
 
 
 PRAIAS = [
@@ -67,7 +81,7 @@ PRAIAS = [
         "faixa_areia": "Areia escura e fofa, faixa estreita a moderada emoldurada pela mata.",
         "dicas_seguranca": (
             "Atenção às pedras nas extremidades da praia e à formação de correntes em dias "
-            "de ressaca. Poucos comércios means menor movimento de banhistas para pedir ajuda."
+            "de ressaca. Poucos comércios significam menor movimento de banhistas para pedir ajuda."
         ),
     },
     {
@@ -296,6 +310,130 @@ COMERCIOS = [
         "categoria": "Quiosque",
         "distancia_areia_metros": 50,
         "link_afiliado": "https://rentcars.com/afiliado-teste-2",
+    },
+    {
+        "praia_nome": "Juquehy",
+        "praia_cidade": "São Sebastião",
+        "nome": "Pousada Sol e Mar",
+        "categoria": "Pousada",
+        "distancia_areia_metros": 300,
+        "link_afiliado": _link_busca_booking("Pousada Sol e Mar", "Juquehy, São Sebastião"),
+    },
+    {
+        "praia_nome": "Maresias",
+        "praia_cidade": "São Sebastião",
+        "nome": "Pousada Porto Mare",
+        "categoria": "Pousada",
+        "distancia_areia_metros": 50,
+        "link_afiliado": _link_busca_booking("Pousada Porto Mare", "Maresias, São Sebastião"),
+    },
+    {
+        "praia_nome": "Camburi",
+        "praia_cidade": "São Sebastião",
+        "nome": "Pousada Quintal da Mata",
+        "categoria": "Pousada",
+        "distancia_areia_metros": 1500,
+        "link_afiliado": _link_busca_booking("Pousada Quintal da Mata", "Camburi, São Sebastião"),
+    },
+    {
+        "praia_nome": "Barra do Una",
+        "praia_cidade": "São Sebastião",
+        "nome": "Pousada Una",
+        "categoria": "Pousada",
+        "distancia_areia_metros": 200,
+        "link_afiliado": _link_busca_booking("Pousada Una", "Barra do Una, São Sebastião"),
+    },
+    {
+        "praia_nome": "Baleia",
+        "praia_cidade": "São Sebastião",
+        "nome": "Pousada Praia da Baleia",
+        "categoria": "Pousada",
+        "distancia_areia_metros": 100,
+        "link_afiliado": _link_busca_booking("Pousada Praia da Baleia", "São Sebastião"),
+    },
+    {
+        "praia_nome": "Guaecá",
+        "praia_cidade": "São Sebastião",
+        "nome": "Pousada Castelinho",
+        "categoria": "Pousada",
+        "distancia_areia_metros": 500,
+        "link_afiliado": _link_busca_booking("Pousada Castelinho", "Guaecá, São Sebastião"),
+    },
+    {
+        "praia_nome": "Toque-Toque Grande",
+        "praia_cidade": "São Sebastião",
+        "nome": "Paraíso de Toque Toque Grande",
+        "categoria": "Pousada",
+        "distancia_areia_metros": 50,
+        "link_afiliado": _link_busca_booking(
+            "Paraíso de Toque Toque Grande", "São Sebastião"
+        ),
+    },
+    {
+        "praia_nome": "Prainha (Ilhabela)",
+        "praia_cidade": "Ilhabela",
+        "nome": "Pousada Ilhote da Prainha",
+        "categoria": "Pousada",
+        "distancia_areia_metros": 150,
+        "link_afiliado": _link_busca_booking("Pousada Ilhote da Prainha", "Ilhabela"),
+    },
+    {
+        "praia_nome": "Praia do Bonete",
+        "praia_cidade": "Ilhabela",
+        "nome": "Pousada da Rosa",
+        "categoria": "Pousada",
+        "distancia_areia_metros": 70,
+        "link_afiliado": _link_busca_booking("Pousada da Rosa Bonete", "Ilhabela"),
+    },
+    {
+        "praia_nome": "Praia do Pereque",
+        "praia_cidade": "Ilhabela",
+        "nome": "Pousada Perequê",
+        "categoria": "Pousada",
+        "distancia_areia_metros": 80,
+        "link_afiliado": _link_busca_booking("Pousada Perequê", "Ilhabela"),
+    },
+    {
+        "praia_nome": "Praia Martim de Sá",
+        "praia_cidade": "Caraguatatuba",
+        "nome": "Pousada Villa Del Mare",
+        "categoria": "Pousada",
+        "distancia_areia_metros": 150,
+        "link_afiliado": _link_busca_booking("Pousada Villa Del Mare", "Caraguatatuba"),
+    },
+    {
+        "praia_nome": "Prainha (Caraguatatuba)",
+        "praia_cidade": "Caraguatatuba",
+        "nome": "Pousada Morada da Prainha",
+        "categoria": "Pousada",
+        "distancia_areia_metros": 50,
+        "link_afiliado": _link_busca_booking("Pousada Morada da Prainha", "Caraguatatuba"),
+    },
+    {
+        "praia_nome": "Praia Grande (Ubatuba)",
+        "praia_cidade": "Ubatuba",
+        "nome": "Pousada Peixes do Mar",
+        "categoria": "Pousada",
+        "distancia_areia_metros": 200,
+        "link_afiliado": _link_busca_booking(
+            "Pousada Peixes do Mar", "Praia Grande, Ubatuba"
+        ),
+    },
+    {
+        "praia_nome": "Praia da Enseada",
+        "praia_cidade": "Ubatuba",
+        "nome": "Hotel Porto Di Mare",
+        "categoria": "Pousada",
+        "distancia_areia_metros": 100,
+        "link_afiliado": _link_busca_booking("Hotel Porto Di Mare", "Enseada, Ubatuba"),
+    },
+    {
+        "praia_nome": "Lagoinha",
+        "praia_cidade": "Ubatuba",
+        "nome": "Aldeia da Lagoinha",
+        "categoria": "Pousada",
+        "distancia_areia_metros": 300,
+        "link_afiliado": _link_busca_booking("Aldeia da Lagoinha", "Ubatuba"),
     },
 ]
 

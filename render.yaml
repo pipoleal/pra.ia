@@ -9,3 +9,5 @@ services:
         sync: false
       - key: GROQ_API_KEY
         sync: false
+      - key: BOOKING_AFFILIATE_ID
+        sync: false

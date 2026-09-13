@@ -2,6 +2,7 @@ import logging
 import random
 import unicodedata
 
+from app.services.affiliate import link_com_afiliado
 from app.services.weather_service import ClimaAtual, obter_climas_atuais
 
 
@@ -160,16 +161,31 @@ def _bloco_praia(praia, clima: ClimaAtual | None, mencionar_falta_de_comercio: b
     linhas.append(f"**Faixa de areia:** {praia.faixa_areia}")
 
     comercios = getattr(praia, "comercios", [])
-    if comercios:
-        comercio = comercios[0]
-        if comercio.link_afiliado:
-            linhas.append(
-                f"**Para comer:** [{comercio.nome}]({comercio.link_afiliado}) ({comercio.categoria})."
-            )
+    pousadas = [comercio for comercio in comercios if comercio.categoria in ("Pousada", "Hotel")]
+    alimentacao = [comercio for comercio in comercios if comercio not in pousadas]
+
+    if alimentacao:
+        comercio = alimentacao[0]
+        link = link_com_afiliado(comercio.link_afiliado)
+        if link:
+            linhas.append(f"**Para comer:** [{comercio.nome}]({link}) ({comercio.categoria}).")
         else:
             linhas.append(f"**Para comer:** {comercio.nome} ({comercio.categoria}).")
     elif mencionar_falta_de_comercio:
         linhas.append("**Para comer:** ainda não tenho comércios cadastrados perto dessa praia.")
+
+    if pousadas:
+        pousada = pousadas[0]
+        link = link_com_afiliado(pousada.link_afiliado)
+        distancia = (
+            f", a {pousada.distancia_areia_metros} m da praia"
+            if pousada.distancia_areia_metros is not None
+            else ""
+        )
+        if link:
+            linhas.append(f"**Onde ficar:** [{pousada.nome}]({link}){distancia}.")
+        else:
+            linhas.append(f"**Onde ficar:** {pousada.nome}{distancia}.")
 
     linhas.append(f"**Dica de segurança:** {praia.dicas_seguranca}")
     return "\n\n".join(linhas)

@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { ChatInput } from "./components/ChatInput";
 import { ChatMessageBubble } from "./components/ChatMessageBubble";
 import { TypingIndicator } from "./components/TypingIndicator";
@@ -29,7 +31,8 @@ function novoId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-export default function Home() {
+function ChatApp() {
+  const searchParams = useSearchParams();
   const [messages, setMessages] = useState<ChatMessage[]>([MENSAGEM_BOAS_VINDAS]);
   const [input, setInput] = useState("");
   const [carregando, setCarregando] = useState(false);
@@ -40,6 +43,15 @@ export default function Home() {
   useEffect(() => {
     fimDaListaRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, carregando]);
+
+  useEffect(() => {
+    const praia = searchParams.get("praia");
+    if (praia) {
+      setInput(`Me conta mais sobre a praia de ${praia}`);
+      textareaRef.current?.focus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function enviarMensagem() {
     const texto = input.trim();
@@ -110,12 +122,18 @@ export default function Home() {
       <header className="border-b border-white/30 bg-sand-50/60 px-4 py-3 shadow-sm backdrop-blur-xl sm:px-6">
         <div className="mx-auto flex w-full max-w-3xl items-center gap-3">
           <WaveAvatar className="h-10 w-10" />
-          <div>
+          <div className="flex-1">
             <h1 className="text-base font-semibold text-navy-900 sm:text-lg">pra.ia</h1>
             <p className="text-xs text-navy-700/70 sm:text-sm">
               Guia do Litoral Norte de São Paulo
             </p>
           </div>
+          <Link
+            href="/praias"
+            className="rounded-full border border-turquoise-300/60 bg-white/70 px-3 py-1.5 text-xs font-medium text-navy-800 shadow-sm transition hover:border-turquoise-400 hover:bg-white sm:text-sm"
+          >
+            Ver todas as praias
+          </Link>
         </div>
       </header>
 
@@ -154,5 +172,13 @@ export default function Home() {
         textareaRef={textareaRef}
       />
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <ChatApp />
+    </Suspense>
   );
 }

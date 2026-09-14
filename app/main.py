@@ -8,8 +8,9 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.database import engine, get_db
 from app.models import Base, Praia
-from app.schemas import ChatRequest, ChatResponse, PraiaCreate, PraiaResponse
+from app.schemas import ChatRequest, ChatResponse, ComercioResponse, PraiaCreate, PraiaResponse
 from app.seed import seed
+from app.services.affiliate import link_com_afiliado
 from app.services.ai_service import AIServiceError, gerar_recomendacao
 
 
@@ -81,8 +82,24 @@ def create_praia(praia: PraiaCreate, db: Session = Depends(get_db)) -> Praia:
 
 
 @app.get("/praias/", response_model=list[PraiaResponse])
-def list_praias(db: Session = Depends(get_db)) -> list[Praia]:
-    return list(db.scalars(select(Praia)).all())
+def list_praias(db: Session = Depends(get_db)) -> list[PraiaResponse]:
+    praias = list(db.scalars(select(Praia).options(selectinload(Praia.comercios))).all())
+
+    respostas = []
+    for praia in praias:
+        resposta = PraiaResponse.model_validate(praia)
+        resposta.comercios = [
+            ComercioResponse(
+                nome=comercio.nome,
+                categoria=comercio.categoria,
+                link_afiliado=link_com_afiliado(comercio.link_afiliado),
+                distancia_areia_metros=comercio.distancia_areia_metros,
+            )
+            for comercio in praia.comercios
+        ]
+        respostas.append(resposta)
+
+    return respostas
 
 
 @app.post("/praias/seed", status_code=200)

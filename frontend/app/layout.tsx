@@ -10,9 +10,16 @@ const inter = Inter({
   display: "swap",
 });
 
+const DESCRICAO =
+  "Guia do Litoral Norte de São Paulo com IA: descubra a praia ideal em São Sebastião, Ilhabela, Caraguatatuba e Ubatuba, com clima, dicas de segurança e onde ficar.";
+
 export const metadata: Metadata = {
-  title: "pra.ia",
-  description: "Guia do Litoral Norte de São Paulo",
+  metadataBase: new URL("https://pra-ia.vercel.app"),
+  title: {
+    default: "pra.ia — Guia do Litoral Norte de São Paulo",
+    template: "%s | pra.ia",
+  },
+  description: DESCRICAO,
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -25,6 +32,20 @@ export const metadata: Metadata = {
       { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  openGraph: {
+    title: "pra.ia — Guia do Litoral Norte de São Paulo",
+    description: DESCRICAO,
+    url: "https://pra-ia.vercel.app",
+    siteName: "pra.ia",
+    locale: "pt_BR",
+    type: "website",
+    images: ["/images/sunset-litoral-norte.jpg"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "pra.ia — Guia do Litoral Norte de São Paulo",
+    description: DESCRICAO,
   },
 };
 

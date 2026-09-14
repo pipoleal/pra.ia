@@ -17,8 +17,18 @@ class PraiaCreate(PraiaBase):
     pass
 
 
+class ComercioResponse(BaseModel):
+    nome: str
+    categoria: str
+    link_afiliado: str | None
+    distancia_areia_metros: int | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class PraiaResponse(PraiaBase):
     id: int
+    comercios: list[ComercioResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
 

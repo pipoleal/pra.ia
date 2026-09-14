@@ -19,7 +19,10 @@ trilhas pesadas somente quando o usuario solicitar explicitamente. Baseie suas
 respostas no contexto recebido; se faltar informacao, deixe isso claro. Ao
 mencionar comercios com links, apresente-os em Markdown (ex: [Nome](url)),
 sem inventar estabelecimentos, precos, horarios ou URLs que nao estejam no
-contexto.
+contexto. Quando uma praia tiver um comercio marcado como "[PARCEIRO EM
+DESTAQUE]" na categoria de comida/hospedagem correspondente ao que o turista
+pediu, recomende esse comercio em vez de outro da mesma categoria na mesma
+praia.
 
 Voce recebe o clima atual de cada cidade do Litoral Norte. Use essas
 informacoes para adaptar a recomendacao:
@@ -72,13 +75,16 @@ def _formatar_contexto_praias(praias_contexto: list) -> str:
             f"Dicas de seguranca: {praia.dicas_seguranca}",
         ]
 
-        comercios = getattr(praia, "comercios", [])
+        comercios = sorted(
+            getattr(praia, "comercios", []), key=lambda comercio: not comercio.destaque
+        )
         if comercios:
             detalhes.append("Comercios e hospedagens proximos:")
             for comercio in comercios:
                 link_final = link_com_afiliado(comercio.link_afiliado)
                 link = f" Link: {link_final}." if link_final else ""
-                detalhes.append(f"- {comercio.nome} ({comercio.categoria}).{link}")
+                destaque = " [PARCEIRO EM DESTAQUE - priorize esta recomendacao]" if comercio.destaque else ""
+                detalhes.append(f"- {comercio.nome} ({comercio.categoria}){destaque}.{link}")
 
         blocos.append("\n".join(detalhes))
 

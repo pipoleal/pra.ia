@@ -22,6 +22,7 @@ class ComercioResponse(BaseModel):
     categoria: str
     link_afiliado: str | None
     distancia_areia_metros: int | None
+    destaque: bool
 
     model_config = ConfigDict(from_attributes=True)
 

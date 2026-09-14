@@ -97,6 +97,11 @@ export default async function PraiaDetalhePage({
                     Onde ficar
                   </p>
                   <p className="font-semibold text-navy-900">{pousada.nome}</p>
+                  {pousada.destaque && (
+                    <span className="mt-1 inline-block rounded-full bg-turquoise-100 px-2 py-0.5 text-[11px] font-medium text-turquoise-800">
+                      Recomendado
+                    </span>
+                  )}
                 </a>
               )}
               {alimentacao && (
@@ -110,6 +115,11 @@ export default async function PraiaDetalhePage({
                     Onde comer
                   </p>
                   <p className="font-semibold text-navy-900">{alimentacao.nome}</p>
+                  {alimentacao.destaque && (
+                    <span className="mt-1 inline-block rounded-full bg-turquoise-100 px-2 py-0.5 text-[11px] font-medium text-turquoise-800">
+                      Recomendado
+                    </span>
+                  )}
                 </a>
               )}
             </section>

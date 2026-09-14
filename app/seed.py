@@ -312,6 +312,15 @@ COMERCIOS = [
         "link_afiliado": "https://rentcars.com/afiliado-teste-2",
     },
     {
+        "praia_nome": "Maresias",
+        "praia_cidade": "São Sebastião",
+        "nome": "Boa Padaria e Confeitaria",
+        "categoria": "Padaria e Confeitaria",
+        "distancia_areia_metros": None,
+        "link_afiliado": "https://www.instagram.com/boapadaria/",
+        "destaque": True,
+    },
+    {
         "praia_nome": "Juquehy",
         "praia_cidade": "São Sebastião",
         "nome": "Pousada Sol e Mar",

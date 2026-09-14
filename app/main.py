@@ -28,23 +28,37 @@ app.add_middleware(
 )
 
 
-def _upgrade_schema() -> None:
-    """Adiciona colunas novas em bancos ja existentes (nao ha Alembic no projeto)."""
+def _adicionar_colunas_faltantes(tabela: str, colunas: dict[str, str]) -> None:
+    """Adiciona colunas que ainda nao existem numa tabela (nao ha Alembic no projeto)."""
     inspector = inspect(engine)
-    if "praia" not in inspector.get_table_names():
+    if tabela not in inspector.get_table_names():
         return
 
-    colunas_existentes = {coluna["name"] for coluna in inspector.get_columns("praia")}
-    colunas_novas = ("caracteristicas_mar", "faixa_areia", "dicas_seguranca")
-    faltantes = [coluna for coluna in colunas_novas if coluna not in colunas_existentes]
+    colunas_existentes = {coluna["name"] for coluna in inspector.get_columns(tabela)}
+    faltantes = {
+        nome: definicao for nome, definicao in colunas.items() if nome not in colunas_existentes
+    }
     if not faltantes:
         return
 
     with engine.begin() as connection:
-        for coluna in faltantes:
-            connection.execute(
-                text(f"ALTER TABLE praia ADD COLUMN {coluna} TEXT NOT NULL DEFAULT ''")
-            )
+        for nome, definicao in faltantes.items():
+            connection.execute(text(f"ALTER TABLE {tabela} ADD COLUMN {nome} {definicao}"))
+
+
+def _upgrade_schema() -> None:
+    _adicionar_colunas_faltantes(
+        "praia",
+        {
+            "caracteristicas_mar": "TEXT NOT NULL DEFAULT ''",
+            "faixa_areia": "TEXT NOT NULL DEFAULT ''",
+            "dicas_seguranca": "TEXT NOT NULL DEFAULT ''",
+        },
+    )
+    _adicionar_colunas_faltantes(
+        "comercio",
+        {"destaque": "BOOLEAN NOT NULL DEFAULT FALSE"},
+    )
 
 
 Base.metadata.create_all(bind=engine)
@@ -88,14 +102,16 @@ def list_praias(db: Session = Depends(get_db)) -> list[PraiaResponse]:
     respostas = []
     for praia in praias:
         resposta = PraiaResponse.model_validate(praia)
+        comercios_ordenados = sorted(praia.comercios, key=lambda comercio: not comercio.destaque)
         resposta.comercios = [
             ComercioResponse(
                 nome=comercio.nome,
                 categoria=comercio.categoria,
                 link_afiliado=link_com_afiliado(comercio.link_afiliado),
                 distancia_areia_metros=comercio.distancia_areia_metros,
+                destaque=comercio.destaque,
             )
-            for comercio in praia.comercios
+            for comercio in comercios_ordenados
         ]
         respostas.append(resposta)
 

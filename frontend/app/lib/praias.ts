@@ -5,6 +5,7 @@ export interface Comercio {
   categoria: string;
   link_afiliado: string | null;
   distancia_areia_metros: number | null;
+  destaque: boolean;
 }
 
 export interface Praia {

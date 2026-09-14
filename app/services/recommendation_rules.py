@@ -160,7 +160,7 @@ def _bloco_praia(praia, clima: ClimaAtual | None, mencionar_falta_de_comercio: b
     linhas.append(f"Hoje está **{_resumo_clima(clima)}** por lá. {praia.caracteristicas_mar}")
     linhas.append(f"**Faixa de areia:** {praia.faixa_areia}")
 
-    comercios = getattr(praia, "comercios", [])
+    comercios = sorted(getattr(praia, "comercios", []), key=lambda comercio: not comercio.destaque)
     pousadas = [comercio for comercio in comercios if comercio.categoria in ("Pousada", "Hotel")]
     alimentacao = [comercio for comercio in comercios if comercio not in pousadas]
 

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -37,6 +37,7 @@ class Comercio(Base):
     categoria: Mapped[str] = mapped_column(String)
     link_afiliado: Mapped[str | None] = mapped_column(String, nullable=True)
     distancia_areia_metros: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    destaque: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
 
     praia: Mapped["Praia"] = relationship(back_populates="comercios")
 
